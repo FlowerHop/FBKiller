@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const queryString = require('querystring');
 const app = express();
 const gameCenterCtrl = require('./GameCenter.js');
+const englishLearningCtrl = require('./EnglishLearning.js');
 app.set('port', process.env.PORT || 1338);
 app.use(bodyParser.json());
 app.use('/', express.static('public'));
@@ -30,6 +31,11 @@ app.get('/helloWorld', function(req, res) {
 app.get('/getNewsList/Gamer', function(req, res) {
     gameCenterCtrl.updateNews(() => {
         res.send(JSON.stringify(gameCenterCtrl.getNewsList()));
+    });
+});
+app.get('/getNewsList/EnglishLearning', function(req, res) {
+    englishLearningCtrl.updateNews(() => {
+        res.send(JSON.stringify(englishLearningCtrl.getNewsList()));
     });
 });
 
