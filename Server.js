@@ -8,6 +8,7 @@ const queryString = require('querystring');
 const app = express();
 const gameCenterCtrl = require('./GameCenter.js');
 const englishLearningCtrl = require('./EnglishLearning.js');
+const comicsCtrl = require('./Comics.js');
 app.set('port', process.env.PORT || 1338);
 app.use(bodyParser.json());
 app.use('/', express.static('public'));
@@ -36,6 +37,12 @@ app.get('/getNewsList/Gamer', function(req, res) {
 app.get('/getNewsList/EnglishLearning', function(req, res) {
     englishLearningCtrl.updateNews(() => {
         res.send(JSON.stringify(englishLearningCtrl.getNewsList()));
+    });
+});
+
+app.get('/getNewsList/getComics', function(req, res) {
+    comicsCtrl.updateComics(() => {
+        res.send(JSON.stringify(comicsCtrl.getComics()));
     });
 });
 

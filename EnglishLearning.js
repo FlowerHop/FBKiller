@@ -29,7 +29,7 @@
         let newsList = [];
         return {
             updateNews: function(callback) {
-                CoreCornerParser.findLatestNews(10)
+                CoreCornerParser.findLatestNews()
                     .then((data) => {
                         newsList = data;
                         callback();
@@ -40,6 +40,8 @@
             }
         };
     })();
-
+    // EnglishLearningController.updateNews(function() {
+    //     console.log(EnglishLearningController.getNewsList());
+    // });
     module.exports = EnglishLearningController;
 })();
