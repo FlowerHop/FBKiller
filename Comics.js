@@ -1,12 +1,3 @@
-const Nightmare = require('nightmare');
-const nightmare = Nightmare({ show: false });
-
-const comicList = {
-    'onePiece': [],
-    'myHeroAcademia': [],
-    'Attack on Titan': []
-};
-
 // Solution 1 (failed):
 //   1. goto http://www.dm5.com/manhua-haizeiwang-onepiece/
 //   2. find the latest link (ex: http://www.dm5.com/m570154/)
@@ -31,6 +22,12 @@ const comicList = {
 // 3. parse down and save to ComicsController
 
 (function() {
+    const Nightmare = require('nightmare');
+    const nightmare = Nightmare({ show: false });
+
+
+
+
     let DM5Parser = (function() {
         return {
             // 1. get latest comics(, one piece now)
@@ -41,53 +38,72 @@ const comicList = {
             //   - iterate the imgs
             //     --  goto and return img.src
 
-            findLatestComics: function(latestNum) {
-                let latestComics;
-                return nightmare.goto('http://www.dm5.com/manhua-haizeiwang-onepiece/')
-                    .evaluate((latestNum) => {
-                        return [...document.querySelectorAll(`#detail-list-select-1 > li:nth-child(-n + ${latestNum}) > a`)].map((link) => {
+            // return a promise which returns an array storing the latest chapters of comic
+            findLatestComics: function(comic, latestNum) {
+                return nightmare.goto(comic.urls['dm5'])
+                    .evaluate((comic, latestNum) => {
+                        let list = [...document.querySelectorAll(`#detail-list-select-1 > li:nth-child(-n + ${latestNum}) > a`)].map((link, index) => {
+                            if (index === 0) latestChapter = link.textContent.match(/\d+/g)[0];
                             return {
                                 url: link.href,
-                                imgs: []
-                            }
+                                imgSrcs: []
+                            };
                         });
-                    }, latestNum)
-                    .then((list) => {
-                        latestComics = list;
-                        return latestComics.reduce((accumulator, comic) => {
+
+                        return {
+                            list: list,
+                            latestChapter: latestChapter
+                        };
+                    }, comic, latestNum)
+                    .then((results) => {
+                        if (results.latestChapter <= comic.latestChapter) throw 'There is no new comics.';
+                        comic.latestChapter = results.latestChapter;
+                        return results.list.reduce((accumulator, chapter) => {
                                 return accumulator.then(() => {
-                                    return this.parseImgs(comic);
+                                    return this.parseImgs(chapter);
                                 })
                             }, Promise.resolve())
-                            .then(() => latestComics);
+                            .then(() => results.list);
                     }).catch(console.log)
             },
-            parseImgs: function(comic) {
-                return nightmare.goto(comic.url)
+            parseImgs: function(chapter) {
+                return nightmare.goto(chapter.url.replace('dm5', 'manhuaren'))
                     .evaluate(() => {
-                        return document.querySelector('#chapterpager > a:last-child').textContent;
-                    }).then(length => {
-                        return nightmare.goto(comic.url.replace('dm5', 'manhuaren'))
-                            .evaluate(() => {
-                                return [...document.querySelectorAll('#cp_img > img')].map(img => img.dataset.src);
-                            })
-                            .then((imgs) => {
-                                comic.imgs = imgs;
-                            });
+                        return [...document.querySelectorAll('#cp_img > img')].map(img => img.dataset.src);
                     })
+                    .then((imgSrcs) => {
+                        chapter.imgSrcs = imgSrcs;
+                    });
             }
         };
     })();
 
     let ComicController = (function() {
-        let comics = [];
+        let comics = {
+            'onePiece': {
+                urls: { dm5: 'http://www.dm5.com/manhua-haizeiwang-onepiece/' },
+                latestChapter: 0,
+                chapters: []
+            },
+            // 'Attack on Titan': {
+            //     urls: { dm5: 'http://www.dm5.com/manhua-jinjidejuren/' },
+            //     latestChapter: 0,
+            //     chapters: []
+            // },
+            // 'myHeroAcademia': {}
+
+        };
         return {
             updateComics: function(callback) {
-                DM5Parser.findLatestComics(1)
-                    .then(data => {
-                        comics = data;
-                        callback()
-                    });
+                for (let k in comics) {
+                    DM5Parser.findLatestComics(comics[k], 1)
+                        // param data is an array storing the latest chapters
+                        .then(chapters => {
+                            if (chapters)
+                                comics[k].chapters = chapters;
+                            callback();
+                        })
+                }
             },
             getComics: function() {
                 return comics;

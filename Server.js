@@ -41,6 +41,7 @@ app.get('/getNewsList/EnglishLearning', function(req, res) {
 });
 
 app.get('/getNewsList/getComics', function(req, res) {
+    console.log('receive getComics')
     comicsCtrl.updateComics(() => {
         res.send(JSON.stringify(comicsCtrl.getComics()));
     });
